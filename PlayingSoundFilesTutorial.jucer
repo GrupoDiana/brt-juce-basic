@@ -3,7 +3,7 @@
 <JUCERPROJECT name="PlayingSoundFilesTutorial" companyName="JUCE" version="1.0.0"
               userNotes="Plays audio files." companyWebsite="http://juce.com"
               projectType="guiapp" useAppConfig="0" addUsingNamespaceToJuceHeader="1"
-              id="phg3Rq" jucerFormatVersion="1">
+              id="phg3Rq" jucerFormatVersion="1" headerPath="C:\Users\lmtan\Documents\Repos\BRTLibrary\include&#10;C:\extlibs\include&#10;">
   <MAINGROUP id="oDGYfy" name="PlayingSoundFilesTutorial">
     <GROUP id="{8CBCCBD5-A8A2-19AD-F5DB-D2FB0417DA19}" name="Source">
       <FILE id="AgP44b" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
@@ -44,7 +44,7 @@
         <MODULEPATH id="juce_gui_extra" path=""/>
       </MODULEPATHS>
     </XCODE_MAC>
-    <VS2019 targetFolder="Builds/VisualStudio2019">
+    <VS2019 targetFolder="Builds/VisualStudio2019" externalLibraries="C:\extlibs\lib\mysofa.lib&#10;C:\extlibs\lib\zlib.lib&#10;">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="PlayingSoundFilesTutorial"/>
         <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="PlayingSoundFilesTutorial"/>

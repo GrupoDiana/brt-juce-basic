@@ -47,17 +47,33 @@
 
 #pragma once
 
+#include <BRTLibrary.h>
+
+//==============================================================================
+constexpr int SAMPLE_RATE = 44100; // Sample rate in Hz
+constexpr int BLOCK_SIZE = 512;    // Block size in samples
+constexpr int HRTFRESAMPLINGSTEP = 15;
+constexpr float SOURCE1_INITIAL_AZIMUTH = 3.141592653589793 / 2.0; // pi/2
+constexpr float SOURCE1_INITIAL_ELEVATION = 0.f;
+constexpr float SOURCE1_INITIAL_DISTANCE = 0.1f; // 10 cm.
+
 //==============================================================================
 class MainContentComponent   : public juce::AudioAppComponent,
                                public juce::ChangeListener
 {
 public:
+    //==========================================================================
     MainContentComponent()
         : state (Stopped)
     {
-        addAndMakeVisible (&openButton);
-        openButton.setButtonText ("Open...");
-        openButton.onClick = [this] { openButtonClicked(); };
+        // Add a button to open a SOFA file
+        addAndMakeVisible(&openSOFAButton);
+        openSOFAButton.setButtonText("Open SOFA file...");
+		openSOFAButton.onClick = [this] { openSOFAButtonClicked(); };
+
+        addAndMakeVisible (&openWavButton);
+        openWavButton.setButtonText ("Open mono wav file...");
+        openWavButton.onClick = [this] { openWavButtonClicked(); };
 
         addAndMakeVisible (&playButton);
         playButton.setButtonText ("Play");
@@ -77,8 +93,11 @@ public:
         transportSource.addChangeListener (this);   // [2]
 
         setAudioChannels (0, 2);
+
+        setupBRT();
     }
 
+	//==========================================================================
     ~MainContentComponent() override
     {
         shutdownAudio();
@@ -87,6 +106,10 @@ public:
     void prepareToPlay (int samplesPerBlockExpected, double sampleRate) override
     {
         transportSource.prepareToPlay (samplesPerBlockExpected, sampleRate);
+
+        // Set the sample rate and buffer size in the BRT Library
+        globalParameters.SetSampleRate(sampleRate);
+        globalParameters.SetBufferSize(samplesPerBlockExpected);
     }
 
     void getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill) override
@@ -97,8 +120,18 @@ public:
             return;
         }
 
-        transportSource.getNextAudioBlock (bufferToFill);
-    }
+        // Obtener las muestras de audio del transportSource
+        juce::AudioBuffer<float> audioInputBuffer(1, bufferToFill.numSamples); // Buffer mono para las muestras de audio
+        juce::AudioSourceChannelInfo audioBufferToFill(&audioInputBuffer, 0, bufferToFill.numSamples);
+        transportSource.getNextAudioBlock(audioBufferToFill);
+
+        // Copiar las muestras de audio al buffer de salida
+        for (int channel = 0; channel < bufferToFill.buffer->getNumChannels(); ++channel)
+		{
+			bufferToFill.buffer->copyFrom(channel, bufferToFill.startSample, audioInputBuffer, 0, 0, bufferToFill.numSamples);
+		}
+
+    } 
 
     void releaseResources() override
     {
@@ -107,9 +140,10 @@ public:
 
     void resized() override
     {
-        openButton.setBounds (10, 10, getWidth() - 20, 20);
-        playButton.setBounds (10, 40, getWidth() - 20, 20);
-        stopButton.setBounds (10, 70, getWidth() - 20, 20);
+        openWavButton.setBounds(10, 10, getWidth() - 20, 20);
+        openSOFAButton.setBounds (10, 40, getWidth() - 20, 20);
+        playButton.setBounds (10, 70, getWidth() - 20, 20);
+        stopButton.setBounds (10, 100, getWidth() - 20, 20);
     }
 
     void changeListenerCallback (juce::ChangeBroadcaster* source) override
@@ -162,7 +196,97 @@ private:
         }
     }
 
-    void openButtonClicked()
+    //==========================================================================
+    /// Setup BRT Library
+    void setupBRT() {
+
+        // Listener creation
+        brtManager.BeginSetup();
+        listener = brtManager.CreateListener<BRTListenerModel::CListenerHRTFbasedModel>("listener1");
+        brtManager.EndSetup();
+
+        // Place the listener in (0,0,0)
+        Common::CTransform listenerPosition = Common::CTransform();
+        listenerPosition.SetPosition(Common::CVector3(0, 0, 0));
+        listener->SetListenerTransform(listenerPosition);
+    }
+
+    //==========================================================================
+    /// Load a SOFA file and add it to the HRTF list
+    bool LoadSOFAFile(const juce::File& file) {
+        bool result = false; 
+        std::shared_ptr<BRTServices::CHRTF> hrtf = std::make_shared<BRTServices::CHRTF>();
+
+        // Try to get sample rate in SOFA
+        int sampleRateInSOFAFile = sofaReader.GetSampleRateFromSofa(file.getFullPathName().toStdString());
+        if (sampleRateInSOFAFile == -1) {
+			juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error", "The SOFA file does not contain a valid sample rate", "OK");
+			result = false;
+		}
+        else {
+            // Make sure sample rate is same as selected in app. 
+            if (sampleRateInSOFAFile != globalParameters.GetSampleRate()) {
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error", "The SOFA file sample rate does not match the selected sample rate", "OK");
+                result = false;
+            }
+			else {
+				// Load SOFA file
+                result = sofaReader.ReadHRTFFromSofa(file.getFullPathName().toStdString(), hrtf, HRTFRESAMPLINGSTEP, "NearestPoint");
+                if (result) {
+					HRTF_list.push_back(hrtf);
+				}
+				else {
+					juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error", "Error loading SOFA file", "OK");
+				}
+			}
+        }
+        return result;  
+    }
+
+    //==========================================================================
+    // Load a source in the BRT Library
+    void LoadSource(const String& name, float azimuth, float elevation, float distance) {
+		// Create a source
+		brtManager.BeginSetup();
+		source1BRT = brtManager.CreateSoundSource<BRTSourceModel::CSourceSimpleModel>(name.toStdString());
+        listener->ConnectSoundSource(source1BRT);
+		brtManager.EndSetup();
+
+		// Set the source position
+		Common::CTransform sourcePosition = Common::CTransform();
+		sourcePosition.SetPosition(Common::CVector3(distance * std::cos(azimuth) * std::cos(elevation),
+													distance * std::sin(azimuth) * std::cos(elevation),
+													distance * std::sin(elevation)));
+		source1BRT->SetSourceTransform(sourcePosition);
+	}
+
+    // Open a SOFA file using a file chooser
+     void openSOFAButtonClicked()
+	{
+		chooser = std::make_unique<juce::FileChooser> ("Select a SOFA file to load...",
+													   juce::File{},
+													   "*.sofa");                     // Filter for SOFA files
+		auto chooserFlags = juce::FileBrowserComponent::openMode
+						  | juce::FileBrowserComponent::canSelectFiles;
+
+		chooser->launchAsync (chooserFlags, [this] (const juce::FileChooser& fc)     // Launch the file chooser
+		{
+			auto file = fc.getResult();
+
+			if (file != juce::File{})                                                
+			{
+				// Load the SOFA file
+				if (LoadSOFAFile(file)) {
+                    // Set the HRTF to the listener
+                    listener->SetHRTF(HRTF_list.back());
+					juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Success", "SOFA file loaded successfully", "OK");
+				}
+			}
+		});
+	}
+
+    // Open a mono wav file using a file chooser
+    void openWavButtonClicked()
     {
         chooser = std::make_unique<juce::FileChooser> ("Select a Wave file to play...",
                                                        juce::File{},
@@ -194,6 +318,10 @@ private:
                     transportSource.setSource (newSource.get(), 0, nullptr, reader->sampleRate);       // [12]
                     playButton.setEnabled (true);                                                      // [13]
                     readerSource.reset (newSource.release());                                          // [14]
+
+                    String sourceName = file.getFileNameWithoutExtension();
+					LoadSource(sourceName, SOURCE1_INITIAL_AZIMUTH, SOURCE1_INITIAL_ELEVATION, SOURCE1_INITIAL_DISTANCE); 
+
                 }
             }
         });
@@ -210,7 +338,8 @@ private:
     }
 
     //==========================================================================
-    juce::TextButton openButton;
+    juce::TextButton openSOFAButton;
+    juce::TextButton openWavButton;
     juce::TextButton playButton;
     juce::TextButton stopButton;
 
@@ -220,6 +349,17 @@ private:
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     juce::AudioTransportSource transportSource;
     TransportState state;
+
+    //==========================================================================
+    Common::CGlobalParameters globalParameters;                                   // Global BRT parameters
+    BRTBase::CBRTManager brtManager;                                              // BRT global manager interface
+    std::shared_ptr<BRTListenerModel::CListenerHRTFbasedModel> listener;          // Pointer to listener model
+    std::shared_ptr<BRTSourceModel::CSourceSimpleModel> source1BRT;               // Pointer to audio source model
+    float sourceAzimuth{ SOURCE1_INITIAL_AZIMUTH };
+    float sourceElevation{ SOURCE1_INITIAL_ELEVATION };
+    float sourceDistance{ SOURCE1_INITIAL_DISTANCE };
+    BRTReaders::CSOFAReader sofaReader;                                           // SOFA reader provided by BRT Library
+    std::vector<std::shared_ptr<BRTServices::CHRTF>> HRTF_list;                   // List of HRTFs loaded
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainContentComponent)
 };

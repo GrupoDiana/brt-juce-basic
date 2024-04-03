@@ -420,6 +420,8 @@
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/../../JuceLibraryCode",
 					"$(HOME)/JUCE/modules",
+					"C:\Users\lmtan\Documents\Repos\BRTLibrary\include",
+					"C:\extlibs\include",
 					"$(inherited)",
 				);
 				INFOPLIST_FILE = Info-App.plist;
@@ -427,7 +429,7 @@
 				INSTALL_PATH = "$(HOME)/Applications";
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(HOME)/JUCE/modules";
+				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(HOME)/JUCE/modules C:\Users\lmtan\Documents\Repos\BRTLibrary\include C:\extlibs\include";
 				PRODUCT_BUNDLE_IDENTIFIER = com.JUCE.PlayingSoundFilesTutorial;
 				PRODUCT_NAME = "PlayingSoundFilesTutorial";
 				USE_HEADERMAP = NO;
@@ -530,13 +532,15 @@
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/../../JuceLibraryCode",
 					"$(HOME)/JUCE/modules",
+					"C:\Users\lmtan\Documents\Repos\BRTLibrary\include",
+					"C:\extlibs\include",
 					"$(inherited)",
 				);
 				INFOPLIST_FILE = Info-App.plist;
 				INFOPLIST_PREPROCESS = NO;
 				INSTALL_PATH = "$(HOME)/Applications";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(HOME)/JUCE/modules";
+				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(HOME)/JUCE/modules C:\Users\lmtan\Documents\Repos\BRTLibrary\include C:\extlibs\include";
 				PRODUCT_BUNDLE_IDENTIFIER = com.JUCE.PlayingSoundFilesTutorial;
 				PRODUCT_NAME = "PlayingSoundFilesTutorial";
 				USE_HEADERMAP = NO;
