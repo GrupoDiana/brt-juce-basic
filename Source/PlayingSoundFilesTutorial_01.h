@@ -180,6 +180,16 @@ private:
 
                 if (reader != nullptr)
                 {
+                    // Get the number of channels of the audio file
+                    int numChannels = reader->numChannels;
+
+                    // if the number of channels is different from 1, aleert the user and return
+                    if (numChannels != 1)
+					{
+						juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error", "The audio file must be mono", "OK");
+						return;
+					}
+
                     auto newSource = std::make_unique<juce::AudioFormatReaderSource> (reader, true);   // [11]
                     transportSource.setSource (newSource.get(), 0, nullptr, reader->sampleRate);       // [12]
                     playButton.setEnabled (true);                                                      // [13]
