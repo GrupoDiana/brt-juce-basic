@@ -50,12 +50,11 @@
 #include <BRTLibrary.h>
 
 //==============================================================================
-constexpr int SAMPLE_RATE = 44100; // Sample rate in Hz
 constexpr int BLOCK_SIZE = 512;    // Block size in samples
 constexpr int HRTFRESAMPLINGSTEP = 15;
-constexpr float SOURCE1_INITIAL_AZIMUTH = 3.141592653589793 / 2.0; // pi/2
+constexpr float SOURCE1_INITIAL_AZIMUTH = - 3.141592653589793 / 2.0; // pi/2
 constexpr float SOURCE1_INITIAL_ELEVATION = 0.f;
-constexpr float SOURCE1_INITIAL_DISTANCE = 0.1f; // 10 cm.
+constexpr float SOURCE1_INITIAL_DISTANCE = 1;// 0.1f; // 10 cm.
 
 //==============================================================================
 class MainContentComponent   : public juce::AudioAppComponent,
@@ -94,7 +93,17 @@ public:
 
         setAudioChannels (0, 2);
 
-        setupBRT();
+        if (auto* device = deviceManager.getCurrentAudioDevice())
+        {
+            juce::AudioDeviceManager::AudioDeviceSetup setup;
+            deviceManager.getAudioDeviceSetup(setup);
+            setup.bufferSize = BLOCK_SIZE; // Set the buffer size
+            deviceManager.setAudioDeviceSetup(setup, true);
+            setupBRT(setup.sampleRate, setup.bufferSize);
+        }
+        else {
+			juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error", "No audio device found", "OK");
+		}
     }
 
 	//==========================================================================
@@ -106,14 +115,13 @@ public:
     void prepareToPlay (int samplesPerBlockExpected, double sampleRate) override
     {
         transportSource.prepareToPlay (samplesPerBlockExpected, sampleRate);
-
-        // Set the sample rate and buffer size in the BRT Library
         globalParameters.SetSampleRate(sampleRate);
         globalParameters.SetBufferSize(samplesPerBlockExpected);
     }
 
     void getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill) override
     {
+        // If we still haven't loaded a file, simply clear the buffer
         if (readerSource.get() == nullptr)
         {
             bufferToFill.clearActiveBufferRegion();
@@ -125,11 +133,33 @@ public:
         juce::AudioSourceChannelInfo audioBufferToFill(&audioInputBuffer, 0, bufferToFill.numSamples);
         transportSource.getNextAudioBlock(audioBufferToFill);
 
-        // Copiar las muestras de audio al buffer de salida
-        for (int channel = 0; channel < bufferToFill.buffer->getNumChannels(); ++channel)
-		{
-			bufferToFill.buffer->copyFrom(channel, bufferToFill.startSample, audioInputBuffer, 0, 0, bufferToFill.numSamples);
+        // Prepare the input buffer for source 1
+        CMonoBuffer<float> source1Buffer(bufferToFill.numSamples);
+        for (int i = 0; i < bufferToFill.numSamples; i++) {
+			source1Buffer[i] = audioInputBuffer.getSample(0, i);
 		}
+		// Pass the input buffer to the BRT Library source
+		source1BRT->SetBuffer(source1Buffer);
+
+       // Binaural processing
+        brtManager.ProcessAll(); // Process all sources
+
+        //// Get output stereo buffer
+        Common::CEarPair<CMonoBuffer<float>> outputBuffer;
+        listener->GetBuffers(outputBuffer.left, outputBuffer.right);
+  
+
+        // Left output buffer is expected to be in channel 0
+        float* const leftBuffer = bufferToFill.buffer->getWritePointer(0, bufferToFill.startSample);
+        float* const rightBuffer = bufferToFill.buffer->getWritePointer(1, bufferToFill.startSample);
+        for (int i = 0; i < bufferToFill.numSamples; i++) {
+            leftBuffer[i] = outputBuffer.left[i];
+            rightBuffer[i] = outputBuffer.right[i];
+           
+            // For test purposes just copy the sambples from source1Buffer to the output buffers
+            // leftBuffer[i] = source1Buffer[i];
+            // rightBuffer[i] = source1Buffer[i];  
+        }	
 
     } 
 
@@ -198,7 +228,11 @@ private:
 
     //==========================================================================
     /// Setup BRT Library
-    void setupBRT() {
+    void setupBRT(int sampleRate, int bufferSize) {
+
+        // Global parameters
+        globalParameters.SetSampleRate(sampleRate);
+        globalParameters.SetBufferSize(bufferSize);
 
         // Listener creation
         brtManager.BeginSetup();
@@ -253,11 +287,13 @@ private:
 		brtManager.EndSetup();
 
 		// Set the source position
-		Common::CTransform sourcePosition = Common::CTransform();
-		sourcePosition.SetPosition(Common::CVector3(distance * std::cos(azimuth) * std::cos(elevation),
-													distance * std::sin(azimuth) * std::cos(elevation),
-													distance * std::sin(elevation)));
-		source1BRT->SetSourceTransform(sourcePosition);
+		Common::CVector3 listenerPosition = listener->GetListenerTransform().GetPosition();
+        Common::CTransform sourceTransform;
+        Common::CVector3 sourcePosition = Common::CVector3(distance * std::cos(azimuth) * std::cos(elevation) + listenerPosition.x,
+														   distance * std::sin(azimuth) * std::cos(elevation) + listenerPosition.y,
+														   distance * std::sin(elevation) + listenerPosition.z);
+        sourceTransform.SetPosition(sourcePosition);
+		source1BRT->SetSourceTransform(sourceTransform);
 	}
 
     // Open a SOFA file using a file chooser
@@ -278,7 +314,7 @@ private:
 				// Load the SOFA file
 				if (LoadSOFAFile(file)) {
                     // Set the HRTF to the listener
-                    listener->SetHRTF(HRTF_list.back());
+                    listener->SetHRTF(HRTF_list[0]);
 					juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Success", "SOFA file loaded successfully", "OK");
 				}
 			}
@@ -320,7 +356,8 @@ private:
                     readerSource.reset (newSource.release());                                          // [14]
 
                     String sourceName = file.getFileNameWithoutExtension();
-					LoadSource(sourceName, SOURCE1_INITIAL_AZIMUTH, SOURCE1_INITIAL_ELEVATION, SOURCE1_INITIAL_DISTANCE); 
+					LoadSource(sourceName, SOURCE1_INITIAL_AZIMUTH, SOURCE1_INITIAL_ELEVATION, SOURCE1_INITIAL_DISTANCE);
+                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Success", "Audio file loaded successfully", "OK");
 
                 }
             }

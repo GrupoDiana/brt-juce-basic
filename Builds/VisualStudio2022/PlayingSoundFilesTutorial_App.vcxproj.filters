@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="PlayingSoundFilesTutorial\Source">
       <UniqueIdentifier>{4FF6D018-5C03-C25C-55D0-02AC2E9199AC}</UniqueIdentifier>
