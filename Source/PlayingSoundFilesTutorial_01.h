@@ -33,7 +33,7 @@
                    juce_audio_processors, juce_audio_utils, juce_core,
                    juce_data_structures, juce_events, juce_graphics,
                    juce_gui_basics, juce_gui_extra
- exporters:        xcode_mac, vs2019, linux_make
+ exporters:        xcode_mac, vs2022
 
  type:             Component
  mainClass:        MainContentComponent
@@ -52,13 +52,14 @@
 //==============================================================================
 constexpr int BLOCK_SIZE = 512;    // Block size in samples
 constexpr int HRTFRESAMPLINGSTEP = 15;
-constexpr float SOURCE1_INITIAL_AZIMUTH = - 3.141592653589793 / 2.0; // pi/2
+constexpr float SOURCE1_INITIAL_AZIMUTH = 3.141592653589793 / 2.0; // pi/2
 constexpr float SOURCE1_INITIAL_ELEVATION = 0.f;
 constexpr float SOURCE1_INITIAL_DISTANCE = 1;// 0.1f; // 10 cm.
 
 //==============================================================================
 class MainContentComponent   : public juce::AudioAppComponent,
-                               public juce::ChangeListener
+                               public juce::ChangeListener,
+                               public juce::Slider::Listener
 {
 public:
     //==========================================================================
@@ -86,7 +87,44 @@ public:
         stopButton.setColour (juce::TextButton::buttonColourId, juce::Colours::red);
         stopButton.setEnabled (false);
 
-        setSize (300, 200);
+        // Add a dial to control the azimuth of the source
+        addAndMakeVisible(&sourceAzimuthDial);
+        sourceAzimuthDial.setRange(- juce::MathConstants<float>::pi / 2, juce::MathConstants<float>::pi / 2, 0.01);
+        sourceAzimuthDial.setValue(SOURCE1_INITIAL_AZIMUTH);
+        sourceAzimuthDial.setTextValueSuffix(" rad");
+        sourceAzimuthDial.addListener(this);
+        sourceAzimuthDial.setEnabled(false);
+        
+        addAndMakeVisible(&sourceAzimuthLabel);
+        sourceAzimuthLabel.setText("Azimuth", juce::dontSendNotification);
+		sourceAzimuthLabel.attachToComponent(&sourceAzimuthDial, true);
+        sourceAzimuthLabel.setEnabled(false);
+
+        addAndMakeVisible(&sourceElevationDial);
+        sourceElevationDial.setRange(- juce::MathConstants<float>::pi / 4, juce::MathConstants<float>::pi / 4, 0.01);
+        sourceElevationDial.setValue(SOURCE1_INITIAL_ELEVATION);
+        sourceElevationDial.setTextValueSuffix(" rad");
+        sourceElevationDial.addListener(this);
+		sourceElevationDial.setEnabled(false);
+
+        addAndMakeVisible(&sourceElevationLabel);
+        sourceElevationLabel.setText("Elevation", juce::dontSendNotification);
+        sourceElevationLabel.attachToComponent(&sourceElevationDial, true);
+        sourceElevationLabel.setEnabled(false);
+
+        addAndMakeVisible(&sourceDistanceDial);
+        sourceDistanceDial.setRange(0.1, 10, 0.01);
+        sourceDistanceDial.setValue(SOURCE1_INITIAL_DISTANCE);
+        sourceDistanceDial.setTextValueSuffix(" m");
+		sourceDistanceDial.addListener(this);
+        sourceDistanceDial.setEnabled(false);
+
+        addAndMakeVisible(&sourceDistanceLabel);
+        sourceDistanceLabel.setText("Distance", juce::dontSendNotification);
+        sourceDistanceLabel.attachToComponent(&sourceDistanceDial, true);
+        sourceDistanceLabel.setEnabled(false);
+
+        setSize (400, 300);
 
         formatManager.registerBasicFormats();       // [1]
         transportSource.addChangeListener (this);   // [2]
@@ -174,6 +212,12 @@ public:
         openSOFAButton.setBounds (10, 40, getWidth() - 20, 20);
         playButton.setBounds (10, 70, getWidth() - 20, 20);
         stopButton.setBounds (10, 100, getWidth() - 20, 20);
+        auto sliderLeft = 50;
+
+        // Position nicely all sliders
+        sourceAzimuthDial.setBounds(sliderLeft, 130, getWidth() - sliderLeft - 10, 20);
+        sourceElevationDial.setBounds(sliderLeft, 160, getWidth() - sliderLeft - 10, 20);
+        sourceDistanceDial.setBounds(sliderLeft, 190, getWidth() - sliderLeft - 10, 20);
     }
 
     void changeListenerCallback (juce::ChangeBroadcaster* source) override
@@ -186,6 +230,46 @@ public:
                 changeState (Stopped);
         }
     }
+
+    void sliderValueChanged(juce::Slider* slider) override
+	{
+        // Make sure the slider is enabled before accessing BRT objects
+        if (!slider->isEnabled())
+        {
+            return;
+        }
+
+		if (slider == &sourceAzimuthDial) {
+			sourceAzimuth = sourceAzimuthDial.getValue();
+			Common::CTransform sourceTransform = source1BRT->GetCurrentSourceTransform();
+			Common::CVector3 listenerPosition = listener->GetListenerTransform().GetPosition();
+			Common::CVector3 sourcePosition = Common::CVector3(sourceDistance * std::cos(sourceAzimuth) * std::cos(sourceElevation) + listenerPosition.x,
+															   sourceDistance * std::sin(sourceAzimuth) * std::cos(sourceElevation) + listenerPosition.y,
+															   sourceDistance * std::sin(sourceElevation) + listenerPosition.z);
+			sourceTransform.SetPosition(sourcePosition);
+			source1BRT->SetSourceTransform(sourceTransform);
+		}
+		else if (slider == &sourceElevationDial) {
+			sourceElevation = sourceElevationDial.getValue();
+			Common::CTransform sourceTransform = source1BRT->GetCurrentSourceTransform();
+			Common::CVector3 listenerPosition = listener->GetListenerTransform().GetPosition();
+			Common::CVector3 sourcePosition = Common::CVector3(sourceDistance * std::cos(sourceAzimuth) * std::cos(sourceElevation) + listenerPosition.x,
+															   sourceDistance * std::sin(sourceAzimuth) * std::cos(sourceElevation) + listenerPosition.y,
+															   sourceDistance * std::sin(sourceElevation) + listenerPosition.z);
+			sourceTransform.SetPosition(sourcePosition);
+			source1BRT->SetSourceTransform(sourceTransform);
+		}
+		else if (slider == &sourceDistanceDial) {
+			sourceDistance = sourceDistanceDial.getValue();
+			Common::CTransform sourceTransform = source1BRT->GetCurrentSourceTransform();
+			Common::CVector3 listenerPosition = listener->GetListenerTransform().GetPosition();
+			Common::CVector3 sourcePosition = Common::CVector3(sourceDistance * std::cos(sourceAzimuth) * std::cos(sourceElevation) + listenerPosition.x,
+															   sourceDistance * std::sin(sourceAzimuth) * std::cos(sourceElevation) + listenerPosition.y,
+															   sourceDistance * std::sin(sourceElevation) + listenerPosition.z);
+			sourceTransform.SetPosition(sourcePosition);
+			source1BRT->SetSourceTransform(sourceTransform);
+		}
+	}
 
 private:
     enum TransportState
@@ -316,6 +400,9 @@ private:
                     // Set the HRTF to the listener
                     listener->SetHRTF(HRTF_list[0]);
 					juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Success", "SOFA file loaded successfully", "OK");
+					sourceAzimuthDial.setEnabled(true);
+					sourceElevationDial.setEnabled(true);
+					sourceDistanceDial.setEnabled(true);
 				}
 			}
 		});
@@ -379,6 +466,12 @@ private:
     juce::TextButton openWavButton;
     juce::TextButton playButton;
     juce::TextButton stopButton;
+	juce::Label sourceAzimuthLabel;
+    juce::Slider sourceAzimuthDial;
+    juce::Label sourceElevationLabel;
+    juce::Slider sourceElevationDial;
+    juce::Label sourceDistanceLabel;
+    juce::Slider sourceDistanceDial;
 
     std::unique_ptr<juce::FileChooser> chooser;
 
