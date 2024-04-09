@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT name="brt-juce-basic" companyName="JUCE" version="1.0.0" userNotes="Plays audio files."
-              companyWebsite="http://juce.com" projectType="guiapp" useAppConfig="0"
+              companyWebsite="http://diana.uma.es" projectType="guiapp" useAppConfig="0"
               addUsingNamespaceToJuceHeader="1" id="phg3Rq" jucerFormatVersion="1"
-              headerPath="C:\Users\lmtan\Documents\Repos\BRTLibrary\include&#10;C:\extlibs\include&#10;">
+              companyEmail="areyes@uma.es" bundleIdentifier="es.uma.diana.brt-juce-basic"
+              headerPath="C:\Users\lmtan\Documents\Repos\brt-juce-basic\Libs\BRTLibrary\include&#10;C:\Users\lmtan\Documents\Repos\brt-juce-basic\Libs\LibMySofa\include&#10;">
   <MAINGROUP id="oDGYfy" name="brt-juce-basic">
     <GROUP id="{8CBCCBD5-A8A2-19AD-F5DB-D2FB0417DA19}" name="Source">
       <FILE id="AgP44b" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
-      <FILE id="R5oeDz" name="PlayingSoundFilesTutorial_01.h" compile="0"
-            resource="0" file="Source/PlayingSoundFilesTutorial_01.h"/>
+      <FILE id="R5oeDz" name="brt-juce-basic.h" compile="0" resource="0"
+            file="Source/brt-juce-basic.h"/>
     </GROUP>
   </MAINGROUP>
   <MODULES>
@@ -44,10 +45,10 @@
         <MODULEPATH id="juce_gui_extra" path=""/>
       </MODULEPATHS>
     </XCODE_MAC>
-    <VS2022 targetFolder="Builds/VisualStudio2022" externalLibraries="C:\extlibs\lib\mysofa.lib&#10;C:\extlibs\lib\zlib.lib&#10;">
+    <VS2022 targetFolder="Builds/VisualStudio2022" externalLibraries="mysofa.lib&#10;zlib.lib">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug"/>
-        <CONFIGURATION isDebug="0" name="Release"/>
+        <CONFIGURATION isDebug="1" name="Debug" libraryPath="C:\Users\lmtan\Documents\Repos\brt-juce-basic\Libs\ZLib\lib\vs\x64\Release&#10;C:\Users\lmtan\Documents\Repos\brt-juce-basic\Libs\LibMySofa\lib\vs\x64\Debug"/>
+        <CONFIGURATION isDebug="0" name="Release" libraryPath="C:\Users\lmtan\Documents\Repos\brt-juce-basic\Libs\ZLib\lib\vs\x64\Release&#10;C:\Users\lmtan\Documents\Repos\brt-juce-basic\Libs\LibMySofa\lib\vs\x64\Release&#10;&#10;"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="C:\Users\lmtan\Documents\Repos\JUCE\modules"/>

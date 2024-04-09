@@ -23,10 +23,10 @@
 
  BEGIN_JUCE_PIP_METADATA
 
- name:             PlayingSoundFilesTutorial
+ name:             brt-juce-basic.h
  version:          1.0.0
  vendor:           JUCE
- website:          http://juce.com
+ website:          http://diana.uma.es
  description:      Plays audio files.
 
  dependencies:     juce_audio_basics, juce_audio_devices, juce_audio_formats,

@@ -7,7 +7,7 @@
 */
 
 #include <JuceHeader.h>
-#include "PlayingSoundFilesTutorial_01.h"
+#include "brt-juce-basic.h"
 
 class Application    : public juce::JUCEApplication
 {
