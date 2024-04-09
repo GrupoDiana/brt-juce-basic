@@ -13,7 +13,7 @@ Para generar los archivos de proyecto para cada plataforma, necesitarás usar Pr
 6.	Selecciona el IDE que prefieras. Projucer generará los archivos de proyecto en el directorio [Builds/](Builds/).
 Recuerda que cada vez que hagas cambios en el archivo .jucer, deberás repetir estos pasos para actualizar los archivos de proyecto.
 ## Uso de la BRT Library y JUCE
-El archivo [brt-juce-basic.h](brt-juce-basic.h) es el punto de entrada principal para este ejemplo, y en él se realizan todas las tareas de configuración y uso de la BRT Library. 
+El archivo [brt-juce-basic.h](Source/brt-juce-basic.h) es el punto de entrada principal para este ejemplo, y en él se realizan todas las tareas de configuración y uso de la BRT Library. 
 
 ### Configuración de la BRT Library
 La BRT Library se configura en el método `setupBRT(int sampleRate, int bufferSize)`. Aquí se establecen los parámetros globales de la biblioteca, como la frecuencia de muestreo y el tamaño del buffer. También se crea un objeto listener, que representa al oyente en el espacio 3D.
