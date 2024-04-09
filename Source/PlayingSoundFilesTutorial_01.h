@@ -59,7 +59,8 @@ constexpr float SOURCE1_INITIAL_DISTANCE = 1;// 0.1f; // 10 cm.
 //==============================================================================
 class MainContentComponent   : public juce::AudioAppComponent,
                                public juce::ChangeListener,
-                               public juce::Slider::Listener
+                               public juce::Slider::Listener,
+                               public juce::Button::Listener
 {
 public:
     //==========================================================================
@@ -218,6 +219,14 @@ public:
         sourceAzimuthDial.setBounds(sliderLeft, 130, getWidth() - sliderLeft - 10, 20);
         sourceElevationDial.setBounds(sliderLeft, 160, getWidth() - sliderLeft - 10, 20);
         sourceDistanceDial.setBounds(sliderLeft, 190, getWidth() - sliderLeft - 10, 20);
+
+        // Position the SOFA buttons at the bottom of the component
+        int y = getHeight() - 30;
+        for (auto* button : sofaFileButtons)
+        {
+            button->setBounds(10, y, getWidth() - 20, 20);
+            y -= 30;
+        }
     }
 
     void changeListenerCallback (juce::ChangeBroadcaster* source) override
@@ -269,6 +278,24 @@ public:
 			sourceTransform.SetPosition(sourcePosition);
 			source1BRT->SetSourceTransform(sourceTransform);
 		}
+	}
+
+    void buttonClicked(juce::Button* button) override
+	{
+        if (button->getToggleState())
+        {
+            // Find the button that was clicked in the list of SOFA file buttons
+            for (int i = 0; i < sofaFileButtons.size(); ++i)
+			{
+				if (button == sofaFileButtons[i])
+				{
+					// Set the listener HRTF to the selected SOFA file
+					listener->SetHRTF(HRTF_list[i]);
+					break;
+				}
+			}
+
+        }
 	}
 
 private:
@@ -397,12 +424,25 @@ private:
 			{
 				// Load the SOFA file
 				if (LoadSOFAFile(file)) {
-                    // Set the HRTF to the listener
-                    listener->SetHRTF(HRTF_list[0]);
+
 					juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Success", "SOFA file loaded successfully", "OK");
 					sourceAzimuthDial.setEnabled(true);
 					sourceElevationDial.setEnabled(true);
 					sourceDistanceDial.setEnabled(true);
+
+                    // Create a new ToggleButton for the new SOFA file
+                    ToggleButton* sofaFileButton = new ToggleButton(file.getFileNameWithoutExtension());
+                    sofaFileButton->setRadioGroupId(1);
+                    sofaFileButtons.add(sofaFileButton);
+                    addAndMakeVisible(sofaFileButton);
+                    sofaFileButton->addListener(this);
+                    sofaFileButton->setToggleState(true, juce::NotificationType::dontSendNotification);
+
+                    // Call resized() to update the layout
+                    resized();
+
+                    // Set the listener HRTF to the last loaded HRTF
+                    listener->SetHRTF(HRTF_list.back());
 				}
 			}
 		});
@@ -461,6 +501,7 @@ private:
         changeState (Stopping);
     }
 
+
     //==========================================================================
     juce::TextButton openSOFAButton;
     juce::TextButton openWavButton;
@@ -472,6 +513,7 @@ private:
     juce::Slider sourceElevationDial;
     juce::Label sourceDistanceLabel;
     juce::Slider sourceDistanceDial;
+    juce::OwnedArray<Button> sofaFileButtons;
 
     std::unique_ptr<juce::FileChooser> chooser;
 
