@@ -19,8 +19,8 @@ La BRT Library se configura en el método `setupBRT(int sampleRate, int bufferSi
 ### Carga de archivos SOFA
 Los archivos SOFA, que contienen las respuestas al impulso de la cabeza relacionadas con la transferencia (HRTF), se cargan en el método  `LoadSOFAFile(const juce::File& file)`. Estos archivos se utilizan para proporcionar las HRTF que se utilizarán para el procesamiento binaural.
 ### Creación y posicionamiento de fuentes de sonido
-Las fuentes de sonido se crean y posicionan en el método  `c++ LoadSource(const String& name, float azimuth, float elevation, float distance)`. Aquí, se crea una fuente de sonido y se conecta al oyente. Luego, se establece la posición de la fuente en el espacio 3D.
+Las fuentes de sonido se crean y posicionan en el método  `LoadSource(const String& name, float azimuth, float elevation, float distance)`. Aquí, se crea una fuente de sonido y se conecta al oyente. Luego, se establece la posición de la fuente en el espacio 3D.
 ### Procesamiento de audio
-El procesamiento de audio se realiza en el método  `c++ getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)`. Aquí, se obtienen las muestras de audio de la fuente, se pasan a la BRT Library y se procesan todas las fuentes. Luego, se obtiene el buffer de salida estéreo y se envía al dispositivo de salida de audio.
+El procesamiento de audio se realiza en el método  `getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)`. Aquí, se obtienen las muestras de audio de la fuente, se pasan a la BRT Library y se procesan todas las fuentes. Luego, se obtiene el buffer de salida estéreo y se envía al dispositivo de salida de audio.
 ### Control de la reproducción
-La reproducción del audio se controla mediante los métodos  `c++ playButtonClicked()` y  `c++ stopButtonClicked()`, que inician y detienen la reproducción, respectivamente.
+La reproducción del audio se controla mediante los métodos  `playButtonClicked()` y  `stopButtonClicked()`, que inician y detienen la reproducción, respectivamente.
