@@ -26,10 +26,14 @@
     <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
   </MODULES>
   <EXPORTFORMATS>
-    <XCODE_MAC targetFolder="Builds/MacOSX">
+    <XCODE_MAC targetFolder="Builds/MacOSX" xcodeValidArchs="arm64,x86_64" externalLibraries="mysofa&#10;z&#10;">
       <CONFIGURATIONS>
-        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="PlayingSoundFilesTutorial"/>
-        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="PlayingSoundFilesTutorial"/>
+        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="PlayingSoundFilesTutorial"
+                       headerPath="../../Libs/BRTLibrary/include&#10;../../Libs/LibMySofa/include/&#10;"
+                       macOSDeploymentTarget="10.15" osxCompatibility="10.15 SDK" libraryPath="/Users/dianauma/Repos/brt-juce-basic/Libs/LibMySofa/lib/osx/Release"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="PlayingSoundFilesTutorial"
+                       headerPath="../../Libs/BRTLibrary/include&#10;../../Libs/LibMySofa/include/"
+                       macOSDeploymentTarget="10.15" osxCompatibility="10.15 SDK" libraryPath="/Users/dianauma/Repos/brt-juce-basic/Libs/LibMySofa/lib/osx/Release"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path=""/>
