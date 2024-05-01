@@ -1,5 +1,5 @@
 # BRT Library Example with JUCE
-Este repositorio contiene un ejemplo de uso de la [BRT Library](https://github.com/GrupoDiana/BRTLibrary) with the [JUCE](https://github.com/juce-framework/JUCE) framework. Both are included as git submodules in the [Libs](Libs/) directory, along with their dependencies [LibMySofa](https://github.com/GrupoDiana/libmysofa) and [ZLib](https://github.com/GrupoDiana/zlib), these are already compiled for various platforms.
+This is an example of use of the [BRT Library](https://github.com/GrupoDiana/BRTLibrary) with the [JUCE](https://github.com/juce-framework/JUCE) framework. Both are included as git submodules in the [Libs](Libs/) directory, along with their dependencies [LibMySofa](https://github.com/GrupoDiana/libmysofa) and [ZLib](https://github.com/GrupoDiana/zlib), these are already compiled for various platforms.
 
 ## Project generation with Projucer
 To generate the project files for each platform, you will need to use Projucer, which is a JUCE tool. Follow these steps:
