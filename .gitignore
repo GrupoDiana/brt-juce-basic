@@ -364,3 +364,9 @@ FodyWeavers.xsd
 
 # Ignore projucer builds
 Builds/
+
+# Ignore JUCE library builds
+JuceLibraryCode/
+
+# MacOS specific
+.DS_Store

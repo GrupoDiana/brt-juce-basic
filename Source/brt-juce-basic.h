@@ -124,18 +124,22 @@ public:
         sourceDistanceLabel.setText("Distance", juce::dontSendNotification);
         sourceDistanceLabel.attachToComponent(&sourceDistanceDial, true);
         sourceDistanceLabel.setEnabled(false);
-
-        setSize (400, 300);
-
+        
         formatManager.registerBasicFormats();       // [1]
         transportSource.addChangeListener (this);   // [2]
 
         setAudioChannels (0, 2);
-
+        
         if (auto* device = deviceManager.getCurrentAudioDevice())
         {
             juce::AudioDeviceManager::AudioDeviceSetup setup;
             deviceManager.getAudioDeviceSetup(setup);
+            
+            // Show the sample rate in the GUI
+            addAndMakeVisible(&sampleRateLabel);
+            sampleRateLabel.setText("Sample Rate: " + std::to_string((int)setup.sampleRate) + " Hz", juce::dontSendNotification);
+            sourceDistanceLabel.attachToComponent(&sourceDistanceDial, true);
+            
             setup.bufferSize = BLOCK_SIZE; // Set the buffer size
             deviceManager.setAudioDeviceSetup(setup, true);
             setupBRT(setup.sampleRate, setup.bufferSize);
@@ -143,6 +147,8 @@ public:
         else {
 			juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon, "Error", "No audio device found", "OK");
 		}
+        setSize (400, 300);
+
     }
 
 	//==========================================================================
@@ -156,6 +162,9 @@ public:
         transportSource.prepareToPlay (samplesPerBlockExpected, sampleRate);
         globalParameters.SetSampleRate(sampleRate);
         globalParameters.SetBufferSize(samplesPerBlockExpected);
+        // initialise parameters needed for changing HRTFs
+        hrtfState = NotToBeChanged;
+        selectedHRTFidx = -1;
     }
 
     void getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill) override
@@ -165,6 +174,11 @@ public:
         {
             bufferToFill.clearActiveBufferRegion();
             return;
+        }
+        // Check if different HRTF was selected and change accordingly
+        if (hrtfState == ToBeChanged){
+            listener->SetHRTF(HRTF_list[selectedHRTFidx]);
+            hrtfState = NotToBeChanged;
         }
 
         // Obtener las muestras de audio del transportSource
@@ -219,7 +233,7 @@ public:
         sourceAzimuthDial.setBounds(sliderLeft, 130, getWidth() - sliderLeft - 10, 20);
         sourceElevationDial.setBounds(sliderLeft, 160, getWidth() - sliderLeft - 10, 20);
         sourceDistanceDial.setBounds(sliderLeft, 190, getWidth() - sliderLeft - 10, 20);
-
+        sampleRateLabel.setBounds(getWidth()-160, 220, getWidth()-20, 20);
         // Position the SOFA buttons at the bottom of the component
         int y = getHeight() - 30;
         for (auto* button : sofaFileButtons)
@@ -227,6 +241,8 @@ public:
             button->setBounds(10, y, getWidth() - 20, 20);
             y -= 30;
         }
+        
+        
     }
 
     void changeListenerCallback (juce::ChangeBroadcaster* source) override
@@ -289,8 +305,13 @@ public:
 			{
 				if (button == sofaFileButtons[i])
 				{
-					// Set the listener HRTF to the selected SOFA file
-					listener->SetHRTF(HRTF_list[i]);
+					// Check if the button is not the same as previously selected
+                    if (i != selectedHRTFidx)
+                    {
+                        //Set the listener HRTF to the selected SOFA file
+                        selectedHRTFidx = i;
+                        hrtfState = ToBeChanged;
+                    }
 					break;
 				}
 			}
@@ -305,6 +326,12 @@ private:
         Starting,
         Playing,
         Stopping
+    };
+    // States used when HRTF is being changed
+    enum HRTFState
+    {
+        ToBeChanged,
+        NotToBeChanged
     };
 
     void changeState (TransportState newState)
@@ -442,7 +469,9 @@ private:
                     resized();
 
                     // Set the listener HRTF to the last loaded HRTF
-                    listener->SetHRTF(HRTF_list.back());
+                    selectedHRTFidx = (int) HRTF_list.size() - 1;
+                    hrtfState = ToBeChanged; // The HRTF will be changed in the next buffer
+                    
 				}
 			}
 		});
@@ -514,6 +543,7 @@ private:
     juce::Label sourceDistanceLabel;
     juce::Slider sourceDistanceDial;
     juce::OwnedArray<Button> sofaFileButtons;
+    juce::Label sampleRateLabel;
 
     std::unique_ptr<juce::FileChooser> chooser;
 
@@ -533,5 +563,8 @@ private:
     BRTReaders::CSOFAReader sofaReader;                                           // SOFA reader provided by BRT Library
     std::vector<std::shared_ptr<BRTServices::CHRTF>> HRTF_list;                   // List of HRTFs loaded
 
+    int selectedHRTFidx;
+    HRTFState hrtfState;
+    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainContentComponent)
 };
